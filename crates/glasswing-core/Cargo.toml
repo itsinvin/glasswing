@@ -9,6 +9,9 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+aes = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
 serde.workspace = true
 thiserror.workspace = true
 dirs.workspace = true

@@ -2,4 +2,5 @@
 
 pub mod about;
 pub mod consoles;
+pub mod pairing;
 pub mod settings;

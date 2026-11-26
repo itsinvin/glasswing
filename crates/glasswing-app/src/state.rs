@@ -10,6 +10,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use glasswing_core::config::{Config, SavedHost};
 use glasswing_core::discovery::{self, ConsoleState, DiscoveredConsole};
+use glasswing_core::regist::{self, PairedHost};
 use glasswing_core::sysinfo::{self, SystemInfo};
 use rune::tok::{radius, space, type_ as tt};
 use rune::{
@@ -92,6 +93,20 @@ pub struct Ui {
     pub add_key: TextEdit,
     /// Why the add-console window will not save, if it will not.
     pub add_error: Option<String>,
+    /// True while the pairing window is up.
+    pub pair_open: bool,
+    /// Which console is being paired.
+    pub pair_host_id: Option<String>,
+    /// The PIN the user typed, taken from the console's screen.
+    pub pair_pin: TextEdit,
+    /// Where pairing is, in words for the window.
+    pub pair_status: String,
+    /// Why pairing stopped, if it did.
+    pub pair_failure: Option<String>,
+    /// True while a worker thread runs the exchange.
+    pub pair_busy: bool,
+    /// What the console handed back, once it worked.
+    pub pair_result: Option<PairedHost>,
     /// What the system check found.
     pub system: Option<SystemInfo>,
     pub system_loading: bool,
@@ -122,6 +137,13 @@ impl Ui {
             add_address: TextEdit::new(""),
             add_key: TextEdit::new(""),
             add_error: None,
+            pair_open: false,
+            pair_host_id: None,
+            pair_pin: TextEdit::new(""),
+            pair_status: String::new(),
+            pair_failure: None,
+            pair_busy: false,
+            pair_result: None,
             system: None,
             system_loading: false,
             toast: None,
@@ -149,6 +171,13 @@ impl Ui {
             add_address: TextEdit::new(""),
             add_key: TextEdit::new(""),
             add_error: None,
+            pair_open: false,
+            pair_host_id: None,
+            pair_pin: TextEdit::new(""),
+            pair_status: String::new(),
+            pair_failure: None,
+            pair_busy: false,
+            pair_result: None,
             system: None,
             system_loading: false,
             toast: None,
@@ -252,6 +281,12 @@ pub fn run(config_path: PathBuf, config: Config) {
         }),
         ("add", |s: &mut Ui| {
             s.add_open = true;
+        }),
+        ("pair", |s: &mut Ui| {
+            fill_demo(s);
+            s.pair_open = true;
+            s.pair_host_id = Some(s.config.hosts[0].id.clone());
+            s.pair_status = "Enter the PIN the console shows, then press Pair.".to_string();
         }),
         ("found", |s: &mut Ui| fill_demo(s)),
         ("toast", |s: &mut Ui| {
@@ -375,6 +410,106 @@ pub fn refresh_system(s: &mut Ui) {
     }
     s.system_loading = true;
     spawn_system(s);
+}
+
+/// Open the pairing window for one console, PIN in hand.
+pub fn open_pairing(s: &mut Ui, id: String) {
+    s.pair_open = true;
+    s.pair_host_id = Some(id);
+    s.pair_pin = TextEdit::new("");
+    s.pair_failure = None;
+    s.pair_busy = false;
+    s.pair_result = None;
+    let saved = s.psn.text.trim();
+    s.pair_status = if saved.is_empty() {
+        "Save your PSN account ID in Settings first.".to_string()
+    } else {
+        "Enter the PIN the console shows, then press Pair.".to_string()
+    };
+}
+
+/// Read the saved account ID and PIN, and start the exchange on a worker thread.
+pub fn start_pairing(s: &mut Ui) {
+    if s.pair_busy {
+        return;
+    }
+    let Some(host) = s
+        .pair_host_id
+        .as_deref()
+        .and_then(|id| s.config.hosts.iter().find(|host| host.id == id))
+        .cloned()
+    else {
+        s.pair_failure = Some("That console is not saved any more.".to_string());
+        return;
+    };
+    let account_id = match regist::decode_account_id(s.psn.text.trim()) {
+        Ok(id) => id,
+        Err(why) => {
+            s.pair_failure = Some(why);
+            return;
+        }
+    };
+    let pin_text = s.pair_pin.text.trim().to_string();
+    let Ok(pin) = pin_text.parse::<u32>() else {
+        s.pair_failure = Some("The PIN is the 8 digits the console shows.".to_string());
+        return;
+    };
+
+    s.pair_busy = true;
+    s.pair_failure = None;
+    s.pair_status = "Looking for the console's pairing screen…".to_string();
+    let address = host.address.clone();
+    let id = host.id.clone();
+    let Some(handle) = s.handle.clone() else {
+        s.pair_busy = false;
+        return;
+    };
+
+    std::thread::spawn(move || {
+        // Each step owns a handle of its own, so the closure can borrow nothing.
+        let handle_for_steps = handle.clone();
+        let on_step = move |step: regist::PairingStep| {
+            let text = step.text().to_string();
+            let handle = handle_for_steps.clone();
+            handle.update(move |s: &mut Ui, _: &mut Tx| {
+                s.pair_status = text.clone();
+            });
+        };
+        let request = regist::PairingRequest {
+            address: &address,
+            port: regist::REGIST_PORT,
+            console: regist::Console::Ps5,
+            account_id,
+            pin,
+            on_step: Some(Box::new(on_step)),
+        };
+        let outcome = regist::pair(&request);
+        handle.update(move |s: &mut Ui, tx: &mut Tx| {
+            s.pair_busy = false;
+            match outcome {
+                Ok(host_paired) => {
+                    s.pair_result = Some(host_paired.clone());
+                    s.pair_status = "Paired.".to_string();
+                    // Keep the key against this console, so wake and later
+                    // streaming find it.
+                    let mut config = s.config.clone();
+                    if let Some(entry) = config.hosts.iter_mut().find(|entry| entry.id == id) {
+                        entry.regist_key = Some(host_paired.regist_key_hex());
+                    }
+                    write_config(s, config);
+                    s.toast(
+                        ToastKind::Good,
+                        format!("Paired with {}", host_paired.nickname),
+                    );
+                }
+                Err(error) => {
+                    s.pair_failure = Some(error.to_string());
+                    s.pair_status = "Pairing stopped.".to_string();
+                }
+            }
+            tx.instant();
+        });
+    });
 }
 
 /// Seconds since the epoch, for `last_seen`.
@@ -568,6 +703,14 @@ fn on_key(s: &mut Ui, event: &KeyEvent, _: &mut Tx) -> bool {
         s.add_open = false;
         return true;
     }
+    if s.pair_open && event.key == Key::Escape {
+        if s.pair_busy {
+            s.toast(ToastKind::Warn, "Pairing is still running");
+        } else {
+            s.pair_open = false;
+        }
+        return true;
+    }
     false
 }
 
@@ -713,6 +856,9 @@ fn view(s: &Ui, _cx: &mut Cx<Ui>) -> El {
 
     if s.add_open {
         root = root.child(parts::add_dialog(s, &th));
+    }
+    if s.pair_open {
+        root = root.child(pages::pairing::dialog(s, &th));
     }
     root
 }

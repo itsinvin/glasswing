@@ -9,6 +9,9 @@
 
 pub mod config;
 pub mod discovery;
+pub mod regist;
+pub mod rpcrypt;
+pub mod rpcrypt_tables;
 pub mod sysinfo;
 pub mod wake;
 

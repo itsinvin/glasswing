@@ -155,12 +155,24 @@ fn card(s: &Ui, th: &Theme, key: &str, row_data: &Row) -> rune::El {
     match &row_data.host {
         Some(host) => {
             if host.regist_key.is_none() {
-                actions = actions.child(
-                    text("No pairing key")
-                        .key(format!("{key}-nokey"))
-                        .font(type_::SMALL)
-                        .color(th.faint),
-                );
+                actions = actions
+                    .child(parts::button(
+                        th,
+                        format!("{key}-pair"),
+                        "Pair",
+                        false,
+                        false,
+                        {
+                            let id = host.id.clone();
+                            move |s: &mut Ui| crate::state::open_pairing(s, id.clone())
+                        },
+                    ))
+                    .child(
+                        text("No pairing key")
+                            .key(format!("{key}-nokey"))
+                            .font(type_::SMALL)
+                            .color(th.faint),
+                    );
             }
             let id = host.id.clone();
             let confirm = s.confirm_remove.as_deref() == Some(id.as_str());

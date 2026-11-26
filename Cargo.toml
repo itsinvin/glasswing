@@ -27,6 +27,12 @@ dirs = "6"
 if-addrs = "0.13"
 anyhow = "1"
 clap = { version = "4.5", features = ["derive"] }
+# The RP cipher (pairing and session traffic) is AES-128-CFB128 with an
+# HMAC-SHA256 IV, and the tables it keys from are Sony's, so the primitives
+# themselves come from the well-audited RustCrypto crates.
+aes = "0.8"
+hmac = "0.12"
+sha2 = "0.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "registry"] }
 tracing-appender = "0.2"

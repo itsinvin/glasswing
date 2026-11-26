@@ -48,6 +48,20 @@ enum Command {
         #[arg(long)]
         regist_key: Option<String>,
     },
+    /// Pair with a console and save the key it hands back.
+    Pair {
+        /// Console IPv4 address or host name.
+        address: String,
+        /// The PIN on the console's Link Device screen.
+        #[arg(long)]
+        pin: u32,
+        /// PSN account ID in base64. Read from settings when not given.
+        #[arg(long)]
+        account_id: Option<String>,
+        /// Regist port, for tests with a fake console.
+        #[arg(long, default_value_t = glasswing_core::regist::REGIST_PORT)]
+        port: u16,
+    },
     /// Show or create saved settings.
     Config {
         #[command(subcommand)]
@@ -83,7 +97,69 @@ fn main() -> Result<()> {
         } => wake_console(address, regist_key),
         Command::Config { command } => config(command),
         Command::Doctor => doctor(),
+        Command::Pair {
+            address,
+            pin,
+            account_id,
+            port,
+        } => pair(address, pin, account_id, port),
     }
+}
+
+fn pair(address: String, pin: u32, account_id: Option<String>, port: u16) -> Result<()> {
+    let saved = match account_id {
+        Some(text) => text,
+        None => Config::load(&Config::default_path())?
+            .psn_account_id
+            .ok_or_else(|| {
+                anyhow!("no account ID saved: paste it in Settings or pass --account-id")
+            })?,
+    };
+    let account_id =
+        glasswing_core::regist::decode_account_id(&saved).map_err(|why| anyhow!("{why}"))?;
+
+    println!("Pairing with {address}.");
+    println!("Keep the console's Link Device screen open with its PIN showing.");
+
+    let request = glasswing_core::regist::PairingRequest {
+        address: &address,
+        port,
+        console: glasswing_core::regist::Console::Ps5,
+        account_id,
+        pin,
+        on_step: None,
+    };
+    let host = glasswing_core::regist::pair(&request)?;
+
+    println!("Paired with {}.", host.nickname);
+    println!("Regist key: {}", host.regist_key_hex());
+    println!("Console MAC: {}", glasswing_core::regist::hex(&host.mac));
+    println!("RP key type: {}", host.rp_key_type);
+    println!();
+    println!("The app saves this key itself; the CLI prints it for bug reports.");
+
+    // Save the key against the console, so wake and later streaming find it.
+    let path = Config::default_path();
+    let mut config = Config::load(&path).unwrap_or_default();
+    config.upsert_host(glasswing_core::config::SavedHost {
+        id: if host.nickname.is_empty() {
+            format!("manual:{address}")
+        } else {
+            format!("ps5:{}", host.nickname.to_lowercase().replace(' ', "-"))
+        },
+        name: if host.nickname.is_empty() {
+            address.clone()
+        } else {
+            host.nickname.clone()
+        },
+        address: address.clone(),
+        regist_key: Some(host.regist_key_hex()),
+        last_seen: None,
+        manual: false,
+    });
+    config.save(&path)?;
+    println!("Saved to {}", path.display());
+    Ok(())
 }
 
 fn discover(wait_secs: u64, direct: Vec<String>, json: bool) -> Result<()> {
