@@ -61,8 +61,8 @@ pub fn view(_: &Ui, th: &Theme) -> Vec<rune::El> {
                 "Thanks",
                 "Glasswing follows the discovery and wake protocols these projects describe, and keeps an AGPL-3.0 license so their work stays free too.",
             ))
-            .child(parts::fact(th, "chiaki", "chiaki-ng", "Protocol reference, GPLv3", false))
-            .child(parts::fact(th, "kyber", "KyberNow", "Protocol reference, MIT", false))
+            .child(parts::fact(th, "chiaki", "chiaki-ng", "Protocol reference, AGPL-3.0", false))
+            .child(parts::fact(th, "kyber", "KyberNow", "Protocol reference, AGPL-3.0", false))
             .child(parts::divider(th, "thanks-divider"))
             .child(
                 text("PlayStation is a trademark of Sony Interactive Entertainment. Glasswing is not made by or endorsed by Sony.")
