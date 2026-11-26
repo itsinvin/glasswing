@@ -18,13 +18,16 @@ felt like a good fit.
 | Consoles | Settings | About |
 |---|---|---|
 | ![The Consoles page](docs/screens/consoles.png) | ![The Settings page](docs/screens/settings.png) | ![The About page](docs/screens/about.png) |
+| ![The pairing window](docs/screens/pairing.png) | | |
 
 ## What works today
 
 - Find PS5 consoles on your local network with a UDP scan.
 - Show each console's name, address, state, firmware, and running game.
 - Save consoles, including ones you add by IP address.
-- Wake a console from rest mode.
+- **Pair with a console**: paste your PSN account ID once, then the PIN from
+  the console's Link Device screen, and the app saves the pairing key.
+- Wake a console from rest mode with the key pairing gave you.
 - Save stream defaults: 1080p or 720p, 30 or 60 fps, 5–50 Mbps, H.264.
 - Check for an NVIDIA GPU, FFmpeg, and the NVDEC decoder.
 - Keep settings in a plain TOML file on your PC.
@@ -33,7 +36,6 @@ felt like a good fit.
 
 | Step | What it adds |
 |---|---|
-| Pairing | PSN account ID, PIN pairing, and a saved console key |
 | Session | Request a session, open the control channel, get a stream URL |
 | Stream core | Takion, crypto, FEC, and frame assembly |
 | First stream | H.264 decode, wgpu render, Opus audio, controller input |
@@ -66,6 +68,24 @@ cargo run -p glasswing-app -- --snap target\consoles.png --scene consoles
 cargo run -p glasswing-app -- --snap target\settings.png --scene settings
 cargo run -p glasswing-app -- --snap target\about.png --scene about
 ```
+
+There is a scene for the pairing window too (`--scene pair`), and `--scene
+found` fills the list with example consoles.
+
+### Pairing
+
+Pairing runs on the same crate without a window, so you can test it or write a
+bug report with it:
+
+```powershell
+cargo run -p glasswing-cli -- pair --address 192.168.1.24 --pin 12345678
+```
+
+On the console, open **Settings > Linked Devices > Link Device** and leave the
+PIN on screen. It only answers while that screen is open.
+
+To pair without touching a real PlayStation, the tests run the whole exchange
+against a fake console: `cargo test -p glasswing-core`.
 
 ## Command line
 
