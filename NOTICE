@@ -1,0 +1,42 @@
+Glasswing
+Copyright (C) 2026 itsinvin
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+Protocol research and portions of the discovery and wake logic are based on
+chiaki-ng:
+
+  https://github.com/chiaki-ng/chiaki-ng
+  Copyright (C) 2018-2026 the chiaki-ng contributors
+  Licensed under AGPL-3.0
+
+Additional protocol notes came from KyberNow:
+
+  https://github.com/MonsieurNours/kybernow
+  Licensed under AGPL-3.0
+
+The user interface follows shadcn/ui:
+
+  https://github.com/shadcn-ui/ui
+  Licensed under MIT
+
+Icons come from Lucide:
+
+  https://lucide.dev
+  Licensed under ISC
+
+Glasswing is not affiliated with or endorsed by Sony Interactive
+Entertainment. PlayStation and DualSense are trademarks of Sony.
