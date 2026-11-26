@@ -7,7 +7,7 @@ on:
 
 jobs:
   rust:
-    name: Rust core and CLI
+    name: Rust core, CLI and app
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,52 +26,27 @@ jobs:
       - name: Test core
         run: cargo test -p glasswing-core
 
+      - name: Check core
+        run: cargo clippy -p glasswing-core -- -D warnings
+
       - name: Check CLI
         run: cargo clippy -p glasswing-cli -- -D warnings
 
-  web:
-    name: Web UI
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - name: Check app
+        run: cargo clippy -p glasswing-app -- -D warnings
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      - name: Test app
+        run: cargo test -p glasswing-app
+
+      - name: Snapshot the pages
+        run: |
+          cargo run -p glasswing-app -- --snap target\consoles.png --scene consoles
+          cargo run -p glasswing-app -- --snap target\settings.png --scene settings
+          cargo run -p glasswing-app -- --snap target\about.png --scene about
+
+      - name: Upload snapshots
+        uses: actions/upload-artifact@v4
         with:
-          node-version: 22
-          cache: npm
-
-      - name: Install
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-  desktop:
-    name: Desktop app
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - name: Install
-        run: npm ci
-
-      - name: Build front end
-        run: npm run build
-
-      - name: Check Tauri app
-        run: cargo check -p glasswing
+          name: page-snapshots
+          path: target\*.png
+          if-no-files-found: warn

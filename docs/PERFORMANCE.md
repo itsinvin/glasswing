@@ -66,6 +66,10 @@ The video path is **not built yet**. The app can check for an NVIDIA GPU,
 FFmpeg, and NVDEC so you know the PC is ready. The settings are saved for the
 first stream milestone.
 
+The window itself is native Rust on Rune, which presents with DirectX 12 and
+paces frames off the display, so a game frame can be drawn into a Rune surface
+and shown without extra copies or a second compositor.
+
 ## What not to do
 
 - Do not add a big frame queue to hide stutter. It adds delay.

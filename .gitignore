@@ -1,15 +1,6 @@
 # Rust
 /target
-/src-tauri/target
 **/*.rs.bk
-
-# Tauri generated files
-/src-tauri/gen
-
-# Node
-node_modules
-/dist
-*.local
 
 # Logs and local data
 *.log
@@ -20,6 +11,9 @@ logs/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Snapshots taken while checking a page locally
+snapshots/
 
 # Secrets
 .env

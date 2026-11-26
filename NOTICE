@@ -28,15 +28,17 @@ Additional protocol notes came from KyberNow:
   https://github.com/MonsieurNours/kybernow
   Licensed under AGPL-3.0
 
-The user interface follows shadcn/ui:
+The desktop window is built with Rune, a native GPU-rendered Rust UI
+framework:
 
-  https://github.com/shadcn-ui/ui
+  https://github.com/anomalyco/rune
+  Copyright (c) Anomaly
   Licensed under MIT
 
-Icons come from Lucide:
-
-  https://lucide.dev
-  Licensed under ISC
+Rune is pre-release. This project pins a revision of its `dev` branch and
+patches the crates its Cargo.toml asks for; see Cargo.toml for the pin. See
+the Rune repository for its own third-party notices, which cover the GPU,
+text, layout, and accessibility crates it builds on.
 
 Glasswing is not affiliated with or endorsed by Sony Interactive
 Entertainment. PlayStation and DualSense are trademarks of Sony.

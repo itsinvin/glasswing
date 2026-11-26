@@ -3,22 +3,28 @@
 **A low-delay PS5 Remote Play app for Windows.**
 
 Glasswing is a free, open-source app that lets you play your own PS5 on your
-own PC over your home network. It is built in Rust, with a web-style UI made
-with shadcn/ui.
+own PC over your home network. It is written in Rust from top to bottom. The
+window is native Rust drawn by the GPU with [Rune](https://github.com/anomalyco/rune)
+— no webview, no browser engine, no JavaScript anywhere in it.
 
 > **Early build.** Right now Glasswing can find your PS5 on the network, save
-> it, and check that your PC is ready. Pairing and game streaming are the next
-> steps. It cannot stream a game yet.
+> it, wake it, and check that your PC is ready. Pairing and game streaming are
+> the next steps. It cannot stream a game yet.
 
 The name comes from "glass to glass" — the time it takes a picture to go from
 the console's screen to your eyes. A glasswing butterfly has clear wings. It
 felt like a good fit.
+
+| Consoles | Settings | About |
+|---|---|---|
+| ![The Consoles page](docs/screens/consoles.png) | ![The Settings page](docs/screens/settings.png) | ![The About page](docs/screens/about.png) |
 
 ## What works today
 
 - Find PS5 consoles on your local network with a UDP scan.
 - Show each console's name, address, state, firmware, and running game.
 - Save consoles, including ones you add by IP address.
+- Wake a console from rest mode.
 - Save stream defaults: 1080p or 720p, 30 or 60 fps, 5–50 Mbps, H.264.
 - Check for an NVIDIA GPU, FFmpeg, and the NVDEC decoder.
 - Keep settings in a plain TOML file on your PC.
@@ -39,18 +45,29 @@ felt like a good fit.
 You need:
 
 - Windows 10 or 11 (64-bit)
-- Rust stable (1.85 or newer)
-- Node.js 20 or newer
-- WebView2 (already on most Windows 10/11 PCs)
+- Rust stable (1.85 or newer) on the MSVC toolchain
+- A GPU — any DirectX 12 card works; an NVIDIA card is best, since that is
+  where video decode will go first
 
 ```powershell
-npm install
-npm run tauri dev
+cargo run -p glasswing-app
 ```
 
-The first Rust build takes a while. Later builds are much faster.
+The first Rust build takes a while, because Rune and its GPU stack are built
+from source. Later builds are much faster.
 
-### Command line
+### Headless snapshots
+
+Every page can be drawn without a window, which is handy for checking a change
+or for CI:
+
+```powershell
+cargo run -p glasswing-app -- --snap target\consoles.png --scene consoles
+cargo run -p glasswing-app -- --snap target\settings.png --scene settings
+cargo run -p glasswing-app -- --snap target\about.png --scene about
+```
+
+## Command line
 
 The small `gw` tool is useful for testing without the window:
 
@@ -62,14 +79,6 @@ cargo run -p glasswing-cli -- doctor
 
 After a release build, the binary is `target\release\gw.exe`.
 
-### Build an installer
-
-```powershell
-npm run tauri build
-```
-
-Output goes to `src-tauri\target\release\bundle\`.
-
 ## How discovery works
 
 Glasswing sends a short text packet to UDP port **9302** on your local
@@ -77,7 +86,7 @@ network. A PS5 answers with its name, address, state, and the game that is
 running. Nothing goes to the internet.
 
 Wake uses a second packet. It needs the pairing key from the console, so wake
-will only work after pairing is built.
+will only work fully after pairing is built.
 
 ## NVIDIA and low delay
 
@@ -98,8 +107,7 @@ The app already checks for an NVIDIA GPU and NVDEC. See
 ```
 crates/glasswing-core/   protocol and settings, no window needed
 crates/glasswing-cli/    the `gw` command line tool
-src/                     React + shadcn/ui front end
-src-tauri/               Tauri shell and Rust commands
+crates/glasswing-app/    the desktop app: a native Rune window
 docs/                    protocol and performance notes
 ```
 
@@ -120,7 +128,7 @@ Protocol research is based on:
 - [chiaki-ng](https://github.com/chiaki-ng/chiaki-ng) (AGPL-3.0)
 - [KyberNow](https://github.com/MonsieurNours/kybernow) (AGPL-3.0)
 
-The UI follows [shadcn/ui](https://github.com/shadcn-ui/ui) (MIT).
+The window is built with [Rune](https://github.com/anomalyco/rune) (MIT).
 
 ## Disclaimer
 

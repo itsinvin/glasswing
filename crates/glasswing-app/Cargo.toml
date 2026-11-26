@@ -1,0 +1,21 @@
+[package]
+name = "glasswing-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Glasswing desktop app: the native Rune UI for PS5 Remote Play."
+publish = false
+
+[[bin]]
+name = "glasswing"
+path = "src/main.rs"
+
+[dependencies]
+glasswing-core = { workspace = true }
+rune = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
